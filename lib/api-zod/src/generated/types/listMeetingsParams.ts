@@ -3,21 +3,25 @@
  * Do not edit manually.
  * Api
  * Meeting calendar API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
+import type { ListMeetingsStatus } from './listMeetingsStatus';
 
 export type ListMeetingsParams = {
-/**
- * Start date (YYYY-MM-DD)
- */
 from?: Date;
-/**
- * End date (YYYY-MM-DD)
- */
 to?: Date;
 /**
- * Filter by employee ID
  * @nullable
  */
 employeeId?: number | null;
+search?: string;
+/**
+ * @nullable
+ */
+organizerId?: number | null;
+status?: ListMeetingsStatus;
+/**
+ * @nullable
+ */
+isOnline?: boolean | null;
 };

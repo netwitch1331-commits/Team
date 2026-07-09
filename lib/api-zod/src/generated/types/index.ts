@@ -3,9 +3,11 @@
  * Do not edit manually.
  * Api
  * Meeting calendar API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
+export * from './comment';
+export * from './commentInput';
 export * from './conflictCheckInput';
 export * from './conflictCheckResult';
 export * from './conflictCheckResultConflictsItem';
@@ -14,7 +16,9 @@ export * from './conflictErrorConflictsItem';
 export * from './employee';
 export * from './employeeInput';
 export * from './errorResponse';
+export * from './getEmployeeMeetingsParams';
 export * from './healthStatus';
 export * from './listMeetingsParams';
+export * from './listMeetingsStatus';
 export * from './meeting';
 export * from './meetingInput';

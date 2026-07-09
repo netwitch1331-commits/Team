@@ -6,13 +6,9 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface EmployeeInput {
+export interface CommentInput {
   /** @minLength 1 */
-  name: string;
+  authorName: string;
   /** @minLength 1 */
-  role: string;
-  /** @minLength 1 */
-  department: string;
-  /** @nullable */
-  color?: string | null;
+  content: string;
 }

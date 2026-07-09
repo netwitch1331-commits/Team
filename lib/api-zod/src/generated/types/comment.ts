@@ -6,11 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface Employee {
+export interface Comment {
   id: number;
-  name: string;
-  role: string;
-  department: string;
-  avatarInitials: string;
-  color: string;
+  meetingId: number;
+  authorName: string;
+  content: string;
+  createdAt: Date;
 }

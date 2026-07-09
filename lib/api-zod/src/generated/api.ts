@@ -3,13 +3,12 @@
  * Do not edit manually.
  * Api
  * Meeting calendar API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from 'zod';
 
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -57,12 +56,76 @@ export const CreateEmployeeResponse = zod.object({
 
 
 /**
- * @summary List meetings by date range
+ * @summary Get employee by ID
+ */
+export const GetEmployeeParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetEmployeeResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "department": zod.string(),
+  "avatarInitials": zod.string(),
+  "color": zod.string()
+})
+
+
+/**
+ * @summary Get upcoming meetings for an employee
+ */
+export const GetEmployeeMeetingsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetEmployeeMeetingsQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
+export const GetEmployeeMeetingsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "startTime": zod.coerce.date(),
+  "endTime": zod.coerce.date(),
+  "organizerId": zod.number(),
+  "location": zod.string().nullish(),
+  "isOnline": zod.boolean().optional(),
+  "meetingLink": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "organizer": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "department": zod.string(),
+  "avatarInitials": zod.string(),
+  "color": zod.string()
+}),
+  "participants": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.string(),
+  "department": zod.string(),
+  "avatarInitials": zod.string(),
+  "color": zod.string()
+}))
+})
+export const GetEmployeeMeetingsResponse = zod.array(GetEmployeeMeetingsResponseItem)
+
+
+/**
+ * @summary List meetings with optional filters
  */
 export const ListMeetingsQueryParams = zod.object({
-  "from": zod.date().optional().describe('Start date (YYYY-MM-DD)'),
-  "to": zod.date().optional().describe('End date (YYYY-MM-DD)'),
-  "employeeId": zod.coerce.number().nullish().describe('Filter by employee ID')
+  "from": zod.date().optional(),
+  "to": zod.date().optional(),
+  "employeeId": zod.coerce.number().nullish(),
+  "search": zod.coerce.string().optional(),
+  "organizerId": zod.coerce.number().nullish(),
+  "status": zod.enum(['upcoming', 'completed', 'all']).optional(),
+  "isOnline": zod.coerce.boolean().nullish()
 })
 
 export const ListMeetingsResponseItem = zod.object({
@@ -73,6 +136,8 @@ export const ListMeetingsResponseItem = zod.object({
   "endTime": zod.coerce.date(),
   "organizerId": zod.number(),
   "location": zod.string().nullish(),
+  "isOnline": zod.boolean().optional(),
+  "meetingLink": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "organizer": zod.object({
   "id": zod.number(),
@@ -95,7 +160,7 @@ export const ListMeetingsResponse = zod.array(ListMeetingsResponseItem)
 
 
 /**
- * @summary Create a new meeting
+ * @summary Create meeting
  */
 
 
@@ -107,7 +172,9 @@ export const CreateMeetingBody = zod.object({
   "endTime": zod.coerce.date(),
   "organizerId": zod.number(),
   "participantIds": zod.array(zod.number()),
-  "location": zod.string().optional()
+  "location": zod.string().optional(),
+  "isOnline": zod.boolean().optional(),
+  "meetingLink": zod.string().optional()
 })
 
 export const CreateMeetingResponse = zod.object({
@@ -118,6 +185,8 @@ export const CreateMeetingResponse = zod.object({
   "endTime": zod.coerce.date(),
   "organizerId": zod.number(),
   "location": zod.string().nullish(),
+  "isOnline": zod.boolean().optional(),
+  "meetingLink": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "organizer": zod.object({
   "id": zod.number(),
@@ -139,7 +208,7 @@ export const CreateMeetingResponse = zod.object({
 
 
 /**
- * @summary Get a meeting by ID
+ * @summary Get meeting by ID
  */
 export const GetMeetingParams = zod.object({
   "id": zod.coerce.number()
@@ -153,6 +222,8 @@ export const GetMeetingResponse = zod.object({
   "endTime": zod.coerce.date(),
   "organizerId": zod.number(),
   "location": zod.string().nullish(),
+  "isOnline": zod.boolean().optional(),
+  "meetingLink": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "organizer": zod.object({
   "id": zod.number(),
@@ -174,7 +245,7 @@ export const GetMeetingResponse = zod.object({
 
 
 /**
- * @summary Delete a meeting
+ * @summary Delete meeting
  */
 export const DeleteMeetingParams = zod.object({
   "id": zod.coerce.number()
@@ -184,7 +255,7 @@ export const DeleteMeetingResponse = zod.void()
 
 
 /**
- * @summary Get today's meetings
+ * @summary Today's meetings
  */
 export const GetTodayMeetingsResponseItem = zod.object({
   "id": zod.number(),
@@ -194,6 +265,8 @@ export const GetTodayMeetingsResponseItem = zod.object({
   "endTime": zod.coerce.date(),
   "organizerId": zod.number(),
   "location": zod.string().nullish(),
+  "isOnline": zod.boolean().optional(),
+  "meetingLink": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "organizer": zod.object({
   "id": zod.number(),
@@ -216,7 +289,7 @@ export const GetTodayMeetingsResponse = zod.array(GetTodayMeetingsResponseItem)
 
 
 /**
- * @summary Get this week's meetings
+ * @summary This week's meetings
  */
 export const GetWeekMeetingsResponseItem = zod.object({
   "id": zod.number(),
@@ -226,6 +299,8 @@ export const GetWeekMeetingsResponseItem = zod.object({
   "endTime": zod.coerce.date(),
   "organizerId": zod.number(),
   "location": zod.string().nullish(),
+  "isOnline": zod.boolean().optional(),
+  "meetingLink": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "organizer": zod.object({
   "id": zod.number(),
@@ -248,7 +323,7 @@ export const GetWeekMeetingsResponse = zod.array(GetWeekMeetingsResponseItem)
 
 
 /**
- * @summary Check for scheduling conflicts
+ * @summary Check scheduling conflicts
  */
 export const CheckConflictBody = zod.object({
   "startTime": zod.coerce.date(),
@@ -265,6 +340,48 @@ export const CheckConflictResponse = zod.object({
   "conflictingMeetingId": zod.number(),
   "conflictingMeetingTitle": zod.string()
 }))
+})
+
+
+/**
+ * @summary Get comments for a meeting
+ */
+export const GetMeetingCommentsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetMeetingCommentsResponseItem = zod.object({
+  "id": zod.number(),
+  "meetingId": zod.number(),
+  "authorName": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const GetMeetingCommentsResponse = zod.array(GetMeetingCommentsResponseItem)
+
+
+/**
+ * @summary Add a comment to a meeting
+ */
+export const CreateCommentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+export const CreateCommentBody = zod.object({
+  "authorName": zod.string().min(1),
+  "content": zod.string().min(1)
+})
+
+export const CreateCommentResponse = zod.object({
+  "id": zod.number(),
+  "meetingId": zod.number(),
+  "authorName": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
 })
 
 

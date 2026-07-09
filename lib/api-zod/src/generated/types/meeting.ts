@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Meeting calendar API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { Employee } from './employee';
 
@@ -17,6 +17,9 @@ export interface Meeting {
   organizerId: number;
   /** @nullable */
   location?: string | null;
+  isOnline?: boolean;
+  /** @nullable */
+  meetingLink?: string | null;
   createdAt: Date;
   organizer: Employee;
   participants: Employee[];

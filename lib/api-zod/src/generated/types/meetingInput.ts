@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Meeting calendar API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export interface MeetingInput {
@@ -15,4 +15,6 @@ export interface MeetingInput {
   organizerId: number;
   participantIds: number[];
   location?: string;
+  isOnline?: boolean;
+  meetingLink?: string;
 }

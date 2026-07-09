@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Meeting calendar API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -39,6 +39,9 @@ export interface Meeting {
   organizerId: number;
   /** @nullable */
   location?: string | null;
+  isOnline?: boolean;
+  /** @nullable */
+  meetingLink?: string | null;
   createdAt: string;
   organizer: Employee;
   participants: Employee[];
@@ -53,6 +56,8 @@ export interface MeetingInput {
   organizerId: number;
   participantIds: number[];
   location?: string;
+  isOnline?: boolean;
+  meetingLink?: string;
 }
 
 export interface ConflictCheckInput {
@@ -87,23 +92,55 @@ export interface ConflictError {
   conflicts: ConflictErrorConflictsItem[];
 }
 
+export interface Comment {
+  id: number;
+  meetingId: number;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface CommentInput {
+  /** @minLength 1 */
+  authorName: string;
+  /** @minLength 1 */
+  content: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }
 
-export type ListMeetingsParams = {
-/**
- * Start date (YYYY-MM-DD)
- */
+export type GetEmployeeMeetingsParams = {
 from?: string;
-/**
- * End date (YYYY-MM-DD)
- */
+to?: string;
+};
+
+export type ListMeetingsParams = {
+from?: string;
 to?: string;
 /**
- * Filter by employee ID
  * @nullable
  */
 employeeId?: number | null;
+search?: string;
+/**
+ * @nullable
+ */
+organizerId?: number | null;
+status?: ListMeetingsStatus;
+/**
+ * @nullable
+ */
+isOnline?: boolean | null;
 };
+
+export type ListMeetingsStatus = typeof ListMeetingsStatus[keyof typeof ListMeetingsStatus];
+
+
+export const ListMeetingsStatus = {
+  upcoming: 'upcoming',
+  completed: 'completed',
+  all: 'all',
+} as const;
 

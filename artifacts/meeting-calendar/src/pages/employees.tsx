@@ -1,6 +1,7 @@
 import { useListEmployees } from "@workspace/api-client-react";
 import { Avatar } from "@/components/avatar";
 import { Loader2 } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Employees() {
   const { data: employees, isLoading } = useListEmployees();
@@ -23,16 +24,18 @@ export default function Employees() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {employees.map((emp) => (
-            <div key={emp.id} className="bg-card border rounded-lg p-4 flex items-center gap-4 hover-elevate transition-all">
-              <Avatar initials={emp.avatarInitials} color={emp.color} className="w-12 h-12 text-lg shrink-0" />
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-foreground truncate">{emp.name}</h3>
-                <p className="text-sm text-muted-foreground truncate">{emp.role}</p>
-                <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-secondary text-secondary-foreground">
-                  {emp.department}
+            <Link href={"/employees/" + emp.id} key={emp.id} className="block group">
+              <div className="bg-card border rounded-xl p-5 flex items-center gap-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30">
+                <Avatar initials={emp.avatarInitials} color={emp.color} className="w-12 h-12 text-lg shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">{emp.name}</h3>
+                  <p className="text-sm text-muted-foreground truncate">{emp.role}</p>
+                  <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-secondary text-secondary-foreground">
+                    {emp.department}
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

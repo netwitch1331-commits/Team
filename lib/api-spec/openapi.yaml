@@ -1,26 +1,22 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: Meeting calendar API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: employees
-    description: Employee operations
   - name: meetings
-    description: Meeting operations
+  - name: comments
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -55,7 +51,7 @@ paths:
               $ref: "#/components/schemas/EmployeeInput"
       responses:
         "201":
-          description: Created employee
+          description: Created
           content:
             application/json:
               schema:
@@ -67,32 +63,102 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /employees/{id}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: Get employee by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /employees/{id}/meetings:
+    get:
+      operationId: getEmployeeMeetings
+      tags: [employees]
+      summary: Get upcoming meetings for an employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Meetings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meeting"
+
   /meetings:
     get:
       operationId: listMeetings
       tags: [meetings]
-      summary: List meetings by date range
+      summary: List meetings with optional filters
       parameters:
         - in: query
           name: from
           schema:
             type: string
             format: date
-          description: Start date (YYYY-MM-DD)
         - in: query
           name: to
           schema:
             type: string
             format: date
-          description: End date (YYYY-MM-DD)
         - in: query
           name: employeeId
           schema:
             type: ["integer", "null"]
-          description: Filter by employee ID
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: organizerId
+          schema:
+            type: ["integer", "null"]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [upcoming, completed, all]
+        - in: query
+          name: isOnline
+          schema:
+            type: ["boolean", "null"]
       responses:
         "200":
-          description: List of meetings
+          description: Meetings
           content:
             application/json:
               schema:
@@ -102,7 +168,7 @@ paths:
     post:
       operationId: createMeeting
       tags: [meetings]
-      summary: Create a new meeting
+      summary: Create meeting
       requestBody:
         required: true
         content:
@@ -111,19 +177,19 @@ paths:
               $ref: "#/components/schemas/MeetingInput"
       responses:
         "201":
-          description: Created meeting
+          description: Created
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Meeting"
         "400":
-          description: Bad request or conflict
+          description: Bad request
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Scheduling conflict
+          description: Conflict
           content:
             application/json:
               schema:
@@ -133,7 +199,7 @@ paths:
     get:
       operationId: getMeeting
       tags: [meetings]
-      summary: Get a meeting by ID
+      summary: Get meeting by ID
       parameters:
         - in: path
           name: id
@@ -156,7 +222,7 @@ paths:
     delete:
       operationId: deleteMeeting
       tags: [meetings]
-      summary: Delete a meeting
+      summary: Delete meeting
       parameters:
         - in: path
           name: id
@@ -177,10 +243,10 @@ paths:
     get:
       operationId: getTodayMeetings
       tags: [meetings]
-      summary: Get today's meetings
+      summary: Today's meetings
       responses:
         "200":
-          description: Today's meetings
+          description: Meetings
           content:
             application/json:
               schema:
@@ -192,10 +258,10 @@ paths:
     get:
       operationId: getWeekMeetings
       tags: [meetings]
-      summary: Get this week's meetings
+      summary: This week's meetings
       responses:
         "200":
-          description: This week's meetings
+          description: Meetings
           content:
             application/json:
               schema:
@@ -207,7 +273,7 @@ paths:
     post:
       operationId: checkConflict
       tags: [meetings]
-      summary: Check for scheduling conflicts
+      summary: Check scheduling conflicts
       requestBody:
         required: true
         content:
@@ -216,11 +282,55 @@ paths:
               $ref: "#/components/schemas/ConflictCheckInput"
       responses:
         "200":
-          description: Conflict check result
+          description: Result
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ConflictCheckResult"
+
+  /meetings/{id}/comments:
+    get:
+      operationId: getMeetingComments
+      tags: [comments]
+      summary: Get comments for a meeting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+    post:
+      operationId: createComment
+      tags: [comments]
+      summary: Add a comment to a meeting
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
 
 components:
   schemas:
@@ -284,6 +394,10 @@ components:
           type: integer
         location:
           type: ["string", "null"]
+        isOnline:
+          type: boolean
+        meetingLink:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -316,6 +430,10 @@ components:
           items:
             type: integer
         location:
+          type: string
+        isOnline:
+          type: boolean
+        meetingLink:
           type: string
 
     ConflictCheckInput:
@@ -376,6 +494,33 @@ components:
                 type: integer
               conflictingMeetingTitle:
                 type: string
+
+    Comment:
+      type: object
+      required: [id, meetingId, authorName, content, createdAt]
+      properties:
+        id:
+          type: integer
+        meetingId:
+          type: integer
+        authorName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CommentInput:
+      type: object
+      required: [authorName, content]
+      properties:
+        authorName:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
 
     ErrorResponse:
       type: object

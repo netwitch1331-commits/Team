@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, inArray, lt, gt, ne, gte, lte } from "drizzle-orm";
+import { and, eq, inArray, lt, gt, ne, gte, lte, ilike, or } from "drizzle-orm";
 import { db, employeesTable, meetingsTable, meetingParticipantsTable } from "@workspace/db";
 import {
   CreateMeetingBody,
@@ -21,14 +21,35 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function parseListMeetingsQuery(q: Record<string, unknown>) {
   const from = typeof q.from === "string" && DATE_RE.test(q.from) ? q.from : undefined;
   const to = typeof q.to === "string" && DATE_RE.test(q.to) ? q.to : undefined;
+
   const rawEid = q.employeeId;
   const employeeId = rawEid != null && rawEid !== "" ? Number(rawEid) : undefined;
   if (employeeId !== undefined && (!Number.isFinite(employeeId) || employeeId <= 0)) {
     return { error: "Invalid employeeId" };
   }
+
+  const rawOid = q.organizerId;
+  const organizerId = rawOid != null && rawOid !== "" ? Number(rawOid) : undefined;
+  if (organizerId !== undefined && (!Number.isFinite(organizerId) || organizerId <= 0)) {
+    return { error: "Invalid organizerId" };
+  }
+
+  const search = typeof q.search === "string" && q.search.trim() ? q.search.trim() : undefined;
+
+  const rawStatus = q.status;
+  const status =
+    rawStatus === "upcoming" || rawStatus === "completed" || rawStatus === "all"
+      ? rawStatus
+      : undefined;
+
+  const rawIsOnline = q.isOnline;
+  const isOnline =
+    rawIsOnline === "true" ? true : rawIsOnline === "false" ? false : undefined;
+
   if (q.from && !from) return { error: "Invalid from format (YYYY-MM-DD)" };
   if (q.to && !to) return { error: "Invalid to format (YYYY-MM-DD)" };
-  return { data: { from, to, employeeId } };
+
+  return { data: { from, to, employeeId, organizerId, search, status, isOnline } };
 }
 
 async function buildMeeting(meetingId: number) {
@@ -134,7 +155,7 @@ router.get("/meetings/today", async (_req, res): Promise<void> => {
 router.get("/meetings/week", async (_req, res): Promise<void> => {
   const now = new Date();
   const day = now.getDay();
-  const diffToMonday = (day === 0 ? -6 : 1 - day);
+  const diffToMonday = day === 0 ? -6 : 1 - day;
   const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday, 0, 0, 0);
   const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6, 23, 59, 59);
 
@@ -148,8 +169,6 @@ router.get("/meetings/week", async (_req, res): Promise<void> => {
   res.json(GetWeekMeetingsResponse.parse(meetings));
 });
 
-// GET /meetings/check-conflict (handled as POST below)
-
 // GET /meetings
 router.get("/meetings", async (req, res): Promise<void> => {
   const parsed = parseListMeetingsQuery(req.query as Record<string, unknown>);
@@ -157,11 +176,18 @@ router.get("/meetings", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error });
     return;
   }
-  const { from, to, employeeId } = parsed.data;
+  const { from, to, employeeId, organizerId, search, status, isOnline } = parsed.data;
 
+  const now = new Date();
   const conditions = [];
+
   if (from) conditions.push(gte(meetingsTable.startTime, new Date(`${from}T00:00:00`)));
   if (to) conditions.push(lte(meetingsTable.startTime, new Date(`${to}T23:59:59`)));
+  if (organizerId) conditions.push(eq(meetingsTable.organizerId, organizerId));
+  if (search) conditions.push(or(ilike(meetingsTable.title, `%${search}%`), ilike(meetingsTable.location, `%${search}%`)));
+  if (status === "upcoming") conditions.push(gt(meetingsTable.endTime, now));
+  if (status === "completed") conditions.push(lte(meetingsTable.endTime, now));
+  if (isOnline !== undefined) conditions.push(eq(meetingsTable.isOnline, isOnline));
 
   let rows;
   if (employeeId) {
@@ -169,7 +195,7 @@ router.get("/meetings", async (req, res): Promise<void> => {
       .select({ id: meetingsTable.id })
       .from(meetingsTable)
       .innerJoin(meetingParticipantsTable, eq(meetingsTable.id, meetingParticipantsTable.meetingId))
-      .where(and(...conditions, eq(meetingParticipantsTable.employeeId, employeeId)))
+      .where(and(eq(meetingParticipantsTable.employeeId, employeeId), ...conditions))
       .orderBy(meetingsTable.startTime);
   } else {
     rows = await db
@@ -191,7 +217,7 @@ router.post("/meetings", async (req, res): Promise<void> => {
     return;
   }
 
-  const { title, description, startTime, endTime, organizerId, participantIds, location } = parsed.data;
+  const { title, description, startTime, endTime, organizerId, participantIds, location, isOnline } = parsed.data;
   const start = new Date(startTime);
   const end = new Date(endTime);
 
@@ -208,9 +234,11 @@ router.post("/meetings", async (req, res): Promise<void> => {
     return;
   }
 
+  const { meetingLink } = parsed.data;
+
   const [meeting] = await db
     .insert(meetingsTable)
-    .values({ title, description, startTime: start, endTime: end, organizerId, location })
+    .values({ title, description, startTime: start, endTime: end, organizerId, location, isOnline: isOnline ?? false, meetingLink: meetingLink ?? null })
     .returning();
 
   if (participantIds && participantIds.length > 0) {

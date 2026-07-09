@@ -1,10 +1,11 @@
 import { useRoute, useLocation, Link } from "wouter";
-import { useGetMeeting, useDeleteMeeting } from "@workspace/api-client-react";
+import { useGetMeeting, useDeleteMeeting, useGetMeetingComments, useCreateComment } from "@workspace/api-client-react";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Avatar } from "@/components/avatar";
 import { Button } from "@/components/ui/button";
-import { 
+import { useState } from "react";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -15,13 +16,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, ArrowLeft, Calendar, Clock, MapPin, Trash2, Users } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Clock, MapPin, Trash2, Users, Video, MessageSquare, Send } from "lucide-react";
 import { queryClient } from "@/App";
+import { useUser } from "@clerk/react";
 
 export default function MeetingDetail() {
   const [, params] = useRoute("/meetings/:id");
   const [, setLocation] = useLocation();
   const meetingId = params?.id ? Number(params.id) : null;
+  const { user } = useUser();
+  const [commentText, setCommentText] = useState("");
 
   const { data: meeting, isLoading } = useGetMeeting(meetingId!, {
     query: {
@@ -30,11 +34,28 @@ export default function MeetingDetail() {
     }
   });
 
+  const { data: comments, refetch: refetchComments } = useGetMeetingComments(meetingId!, {
+    query: { enabled: !!meetingId, queryKey: ["getMeetingComments", meetingId] }
+  });
+
+  const createComment = useCreateComment();
   const deleteMeeting = useDeleteMeeting();
+
+  const handleAddComment = async () => {
+    if (!commentText.trim() || !meetingId) return;
+    await createComment.mutateAsync({
+      id: meetingId,
+      data: {
+        authorName: user?.fullName ?? user?.username ?? "Аноним",
+        content: commentText.trim(),
+      }
+    });
+    setCommentText("");
+    refetchComments();
+  };
 
   const handleDelete = async () => {
     if (!meetingId) return;
-    
     try {
       await deleteMeeting.mutateAsync({ id: meetingId });
       queryClient.invalidateQueries({ queryKey: ["/api/meetings/today"] });
@@ -115,14 +136,14 @@ export default function MeetingDetail() {
                 <p className="font-medium text-lg capitalize">{format(startTime, 'EEEE, d MMMM yyyy', { locale: ru })}</p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Clock className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Время</h3>
-                <p className="font-mono text-lg">{format(startTime, 'HH:mm')} - {format(endTime, 'HH:mm')}</p>
+                <p className="font-mono text-lg">{format(startTime, 'HH:mm')} — {format(endTime, 'HH:mm')}</p>
               </div>
             </div>
 
@@ -134,6 +155,21 @@ export default function MeetingDetail() {
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground mb-1">Место</h3>
                   <p className="font-medium text-lg">{meeting.location}</p>
+                </div>
+              </div>
+            )}
+
+            {meeting.meetingLink && (
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
+                  <Video className="w-5 h-5 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Ссылка на встречу</h3>
+                  <a href={meeting.meetingLink} target="_blank" rel="noopener noreferrer"
+                    className="text-primary hover:underline break-all font-medium">
+                    {meeting.meetingLink}
+                  </a>
                 </div>
               </div>
             )}
@@ -152,7 +188,7 @@ export default function MeetingDetail() {
             <Users className="w-4 h-4 text-muted-foreground" />
             Участники
           </h3>
-          
+
           <div className="mb-6">
             <p className="text-xs text-muted-foreground font-mono mb-2 uppercase tracking-wider">Организатор</p>
             <div className="flex items-center gap-3 bg-secondary/50 p-2 rounded-md">
@@ -180,6 +216,47 @@ export default function MeetingDetail() {
           </div>
         </div>
       </div>
+
+      {/* Comments section */}
+      <section className="mt-6">
+        <h3 className="text-base font-semibold flex items-center gap-2 mb-4">
+          <MessageSquare className="w-4 h-4 text-primary" />
+          Комментарии ({comments?.length ?? 0})
+        </h3>
+        <div className="space-y-3 mb-4">
+          {(comments ?? []).map(c => (
+            <div key={c.id} className="bg-card border rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">{c.authorName}</span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {format(new Date(c.createdAt), "d MMM, HH:mm", { locale: ru })}
+                </span>
+              </div>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{c.content}</p>
+            </div>
+          ))}
+          {(!comments || comments.length === 0) && (
+            <p className="text-sm text-muted-foreground text-center py-4">Комментариев пока нет</p>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <textarea
+            value={commentText}
+            onChange={e => setCommentText(e.target.value)}
+            placeholder="Написать комментарий..."
+            className="flex-1 bg-card border border-border rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors min-h-[80px]"
+            onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleAddComment(); }}
+          />
+          <button
+            onClick={handleAddComment}
+            disabled={!commentText.trim() || createComment.isPending}
+            className="self-end h-10 w-10 flex items-center justify-center rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">Ctrl+Enter для отправки</p>
+      </section>
     </div>
   );
 }

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Meeting calendar API
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import {
   useMutation,
@@ -20,12 +20,15 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  Comment,
+  CommentInput,
   ConflictCheckInput,
   ConflictCheckResult,
   ConflictError,
   Employee,
   EmployeeInput,
   ErrorResponse,
+  GetEmployeeMeetingsParams,
   HealthStatus,
   ListMeetingsParams,
   Meeting,
@@ -68,7 +71,6 @@ export const getHealthCheckUrl = () => {
 }
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
@@ -285,6 +287,172 @@ export const useCreateEmployee = <TError = ErrorType<ErrorResponse>,
       return useMutation(getCreateEmployeeMutationOptions(options));
     }
 
+export const getGetEmployeeUrl = (id: number,) => {
+
+
+
+
+  return `/api/employees/${id}`
+}
+
+/**
+ * @summary Get employee by ID
+ */
+export const getEmployee = async (id: number, options?: RequestInit): Promise<Employee> => {
+
+  return customFetch<Employee>(getGetEmployeeUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmployeeQueryKey = (id: number,) => {
+    return [
+    `/api/employees/${id}`
+    ] as const;
+    }
+
+
+export const getGetEmployeeQueryOptions = <TData = Awaited<ReturnType<typeof getEmployee>>, TError = ErrorType<ErrorResponse>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmployeeQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployee>>> = ({ signal }) => getEmployee(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmployeeQueryResult = NonNullable<Awaited<ReturnType<typeof getEmployee>>>
+export type GetEmployeeQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get employee by ID
+ */
+
+export function useGetEmployee<TData = Awaited<ReturnType<typeof getEmployee>>, TError = ErrorType<ErrorResponse>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployee>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmployeeQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetEmployeeMeetingsUrl = (id: number,
+    params?: GetEmployeeMeetingsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/employees/${id}/meetings?${stringifiedParams}` : `/api/employees/${id}/meetings`
+}
+
+/**
+ * @summary Get upcoming meetings for an employee
+ */
+export const getEmployeeMeetings = async (id: number,
+    params?: GetEmployeeMeetingsParams, options?: RequestInit): Promise<Meeting[]> => {
+
+  return customFetch<Meeting[]>(getGetEmployeeMeetingsUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmployeeMeetingsQueryKey = (id: number,
+    params?: GetEmployeeMeetingsParams,) => {
+    return [
+    `/api/employees/${id}/meetings`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetEmployeeMeetingsQueryOptions = <TData = Awaited<ReturnType<typeof getEmployeeMeetings>>, TError = ErrorType<unknown>>(id: number,
+    params?: GetEmployeeMeetingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployeeMeetings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmployeeMeetingsQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmployeeMeetings>>> = ({ signal }) => getEmployeeMeetings(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmployeeMeetings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmployeeMeetingsQueryResult = NonNullable<Awaited<ReturnType<typeof getEmployeeMeetings>>>
+export type GetEmployeeMeetingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get upcoming meetings for an employee
+ */
+
+export function useGetEmployeeMeetings<TData = Awaited<ReturnType<typeof getEmployeeMeetings>>, TError = ErrorType<unknown>>(
+ id: number,
+    params?: GetEmployeeMeetingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmployeeMeetings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmployeeMeetingsQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getListMeetingsUrl = (params?: ListMeetingsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -301,7 +469,7 @@ export const getListMeetingsUrl = (params?: ListMeetingsParams,) => {
 }
 
 /**
- * @summary List meetings by date range
+ * @summary List meetings with optional filters
  */
 export const listMeetings = async (params?: ListMeetingsParams, options?: RequestInit): Promise<Meeting[]> => {
 
@@ -348,7 +516,7 @@ export type ListMeetingsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary List meetings by date range
+ * @summary List meetings with optional filters
  */
 
 export function useListMeetings<TData = Awaited<ReturnType<typeof listMeetings>>, TError = ErrorType<unknown>>(
@@ -378,7 +546,7 @@ export const getCreateMeetingUrl = () => {
 }
 
 /**
- * @summary Create a new meeting
+ * @summary Create meeting
  */
 export const createMeeting = async (meetingInput: MeetingInput, options?: RequestInit): Promise<Meeting> => {
 
@@ -427,7 +595,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateMeetingMutationError = ErrorType<ErrorResponse | ConflictError>
 
     /**
- * @summary Create a new meeting
+ * @summary Create meeting
  */
 export const useCreateMeeting = <TError = ErrorType<ErrorResponse | ConflictError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMeeting>>, TError,{data: BodyType<MeetingInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -449,7 +617,7 @@ export const getGetMeetingUrl = (id: number,) => {
 }
 
 /**
- * @summary Get a meeting by ID
+ * @summary Get meeting by ID
  */
 export const getMeeting = async (id: number, options?: RequestInit): Promise<Meeting> => {
 
@@ -496,7 +664,7 @@ export type GetMeetingQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Get a meeting by ID
+ * @summary Get meeting by ID
  */
 
 export function useGetMeeting<TData = Awaited<ReturnType<typeof getMeeting>>, TError = ErrorType<ErrorResponse>>(
@@ -526,7 +694,7 @@ export const getDeleteMeetingUrl = (id: number,) => {
 }
 
 /**
- * @summary Delete a meeting
+ * @summary Delete meeting
  */
 export const deleteMeeting = async (id: number, options?: RequestInit): Promise<void> => {
 
@@ -575,7 +743,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteMeetingMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Delete a meeting
+ * @summary Delete meeting
  */
 export const useDeleteMeeting = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMeeting>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -597,7 +765,7 @@ export const getGetTodayMeetingsUrl = () => {
 }
 
 /**
- * @summary Get today's meetings
+ * @summary Today's meetings
  */
 export const getTodayMeetings = async ( options?: RequestInit): Promise<Meeting[]> => {
 
@@ -644,7 +812,7 @@ export type GetTodayMeetingsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get today's meetings
+ * @summary Today's meetings
  */
 
 export function useGetTodayMeetings<TData = Awaited<ReturnType<typeof getTodayMeetings>>, TError = ErrorType<unknown>>(
@@ -674,7 +842,7 @@ export const getGetWeekMeetingsUrl = () => {
 }
 
 /**
- * @summary Get this week's meetings
+ * @summary This week's meetings
  */
 export const getWeekMeetings = async ( options?: RequestInit): Promise<Meeting[]> => {
 
@@ -721,7 +889,7 @@ export type GetWeekMeetingsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get this week's meetings
+ * @summary This week's meetings
  */
 
 export function useGetWeekMeetings<TData = Awaited<ReturnType<typeof getWeekMeetings>>, TError = ErrorType<unknown>>(
@@ -751,7 +919,7 @@ export const getCheckConflictUrl = () => {
 }
 
 /**
- * @summary Check for scheduling conflicts
+ * @summary Check scheduling conflicts
  */
 export const checkConflict = async (conflictCheckInput: ConflictCheckInput, options?: RequestInit): Promise<ConflictCheckResult> => {
 
@@ -800,7 +968,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CheckConflictMutationError = ErrorType<unknown>
 
     /**
- * @summary Check for scheduling conflicts
+ * @summary Check scheduling conflicts
  */
 export const useCheckConflict = <TError = ErrorType<unknown>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkConflict>>, TError,{data: BodyType<ConflictCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -811,5 +979,154 @@ export const useCheckConflict = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCheckConflictMutationOptions(options));
+    }
+
+export const getGetMeetingCommentsUrl = (id: number,) => {
+
+
+
+
+  return `/api/meetings/${id}/comments`
+}
+
+/**
+ * @summary Get comments for a meeting
+ */
+export const getMeetingComments = async (id: number, options?: RequestInit): Promise<Comment[]> => {
+
+  return customFetch<Comment[]>(getGetMeetingCommentsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMeetingCommentsQueryKey = (id: number,) => {
+    return [
+    `/api/meetings/${id}/comments`
+    ] as const;
+    }
+
+
+export const getGetMeetingCommentsQueryOptions = <TData = Awaited<ReturnType<typeof getMeetingComments>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMeetingComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMeetingCommentsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMeetingComments>>> = ({ signal }) => getMeetingComments(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMeetingComments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMeetingCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof getMeetingComments>>>
+export type GetMeetingCommentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get comments for a meeting
+ */
+
+export function useGetMeetingComments<TData = Awaited<ReturnType<typeof getMeetingComments>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMeetingComments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMeetingCommentsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCommentUrl = (id: number,) => {
+
+
+
+
+  return `/api/meetings/${id}/comments`
+}
+
+/**
+ * @summary Add a comment to a meeting
+ */
+export const createComment = async (id: number,
+    commentInput: CommentInput, options?: RequestInit): Promise<Comment> => {
+
+  return customFetch<Comment>(getCreateCommentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(commentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCommentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createComment>>, TError,{id: number;data: BodyType<CommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createComment>>, TError,{id: number;data: BodyType<CommentInput>}, TContext> => {
+
+const mutationKey = ['createComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createComment>>, {id: number;data: BodyType<CommentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createComment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createComment>>>
+    export type CreateCommentMutationBody = BodyType<CommentInput>
+    export type CreateCommentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a comment to a meeting
+ */
+export const useCreateComment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createComment>>, TError,{id: number;data: BodyType<CommentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createComment>>,
+        TError,
+        {id: number;data: BodyType<CommentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCommentMutationOptions(options));
     }
 
