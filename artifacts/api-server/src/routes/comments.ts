@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, asc } from "drizzle-orm";
 import { db, meetingsTable, meetingCommentsTable } from "@workspace/db";
-import { z } from "zod";
+import { CreateCommentBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
